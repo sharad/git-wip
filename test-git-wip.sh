@@ -2,6 +2,8 @@
 
 set -e
 
+NOT_EMACS_MAGIT_WIP=
+
 # split the script name into BASE directory, and the name it calls itSELF
 BASE=$(realpath ${0%/*})
 SELF=${0##*/}
@@ -118,7 +120,12 @@ test_general() {
 	# not expecting  wip ref at this time
 
 	RUN git for-each-ref
-	EXP_grep -v "commit.refs/wip/master$"
+	if [ "$NOT_EMACS_MAGIT_WIP" ]
+  then
+		EXP_grep -v "commit.refs/wip/master$"
+	else
+		EXP_grep -v "commit.refs/wip/wtree/refs/heads/master$"
+	fi
 
 	# make changes, store wip
 
@@ -129,7 +136,12 @@ test_general() {
 	# expecting a wip ref
 
 	RUN git for-each-ref
-	EXP_grep "commit.refs/wip/master$"
+	if [ "$NOT_EMACS_MAGIT_WIP" ]
+  then
+		EXP_grep "commit.refs/wip/master$"
+	else
+		EXP_grep "commit.refs/wip/wtree/refs/heads/master$"
+	fi
 
 	# expecting a log entry
 
@@ -188,7 +200,12 @@ test_general() {
 	EXP_grep '^3$'
 	EXP_grep -v '^4$'
 
-	RUN git show wip/master:README
+	if [ "$NOT_EMACS_MAGIT_WIP" ]
+  then
+		RUN git show wip/master:README
+	else
+		RUN git show wip/wtree/refs/heads/master:README
+	fi
 	EXP_grep -v '^3$'
 	EXP_grep '^4$'
 }
@@ -210,7 +227,12 @@ test_spaces() {
 	# expecting a wip ref
 
 	RUN git for-each-ref
-	EXP_grep "commit.refs/wip/master$"
+	if [ "$NOT_EMACS_MAGIT_WIP" ]
+  then
+		EXP_grep "commit.refs/wip/master$"
+	else
+		EXP_grep "commit.refs/wip/wtree/refs/heads/master$"
+	fi
 
 	# expecting a log entry
 
