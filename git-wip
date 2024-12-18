@@ -1,7 +1,7 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Copyright Bart Trojanowski <bart@jukie.net>
-# 
+#
 # git-wip is a script that will manage Work In Progress (or WIP) branches.
 # WIP branches are mostly throw away but identify points of development
 # between commits.  The intent is to tie this script into your editor so
@@ -15,8 +15,70 @@
 # Please see http://www.gnu.org/licenses/gpl-2.0.txt
 #
 
-USAGE='[ info | save <message> [ --editor | --untracked | --no-gpg-sign ] | log [ --pretty ] | delete ] [ [--] <file>... ]'
-LONG_USAGE="Manage Work In Progress branches
+function main()
+{
+	init
+	if test $# -eq 0
+	then
+		dbg "no arguments"
+
+		do_save "WIP"
+		exit $?
+	fi
+
+	dbg "args: $@"
+
+	case "$1" in
+		save)
+			WIP_COMMAND=$1
+			shift
+			if [ -n "$1" ] && [[ "$1" != -* ]]
+			then
+				WIP_MESSAGE="$1"
+				shift
+			fi
+			;;
+		info|log|delete|push)
+			WIP_COMMAND=$1
+			shift
+			;;
+		help)
+			do_help 0
+			;;
+		--*)
+			;;
+		*)
+			[ -f "$1" ] || die "Unknown command '$1'."
+			;;
+	esac
+
+	case $WIP_COMMAND in
+		save)
+			do_save "$WIP_MESSAGE" "$@"
+			;;
+		info)
+			do_info "$@"
+			;;
+		log)
+			do_log "$@"
+			;;
+		delete)
+			do_delete "$@"
+			;;
+		push)
+			do_push "" "$@"
+			;;
+		*)
+			usage
+			exit 1
+			;;
+	esac
+}
+
+function init()
+{
+	USAGE='[ info | save <message> [ --editor | --untracked | --no-gpg-sign | --push no_of_commits ] | log [ --pretty ] | delete ] [ [--] <file>... ]'
+	LONG_USAGE="Manage Work In Progress branches
 
 Commands:
         git wip                   - create a new WIP commit
@@ -24,6 +86,7 @@ Commands:
         git wip info [<branch>]   - brief WIP info
         git wip log [<branch>]    - show changes on the WIP branch
         git wip delete [<branch>] - delete a WIP branch
+        git wip push [<branch>]   - push a WIP branch
 
 Options for save:
         -e --editor               - be less verbose, assume called from an editor
@@ -31,31 +94,35 @@ Options for save:
         -i --ignored              - capture also ignored files
         --no-gpg-sign             - do not sign commit; that is, countermand
                                     'commit.gpgSign = true'
+        -p --push no_of_commits   - also push if no_of_commits exceeds
 
 Options for log:
-        -p --pretty               - show a pretty graph
-	-r --reflog               - show changes in reflog
-	-s --stat                 - show diffstat
+        -P --pretty               - show a pretty graph
+	      -r --reflog               - show changes in reflog
+	      -s --stat                 - show diffstat
 "
 
-SUBDIRECTORY_OK=Yes
-OPTIONS_SPEC=
+	SUBDIRECTORY_OK=Yes
+	OPTIONS_SPEC=
 
-. "$(git --exec-path)/git-sh-setup"
+	. "$(git --exec-path)/git-sh-setup"
 
-require_work_tree
+	require_work_tree
 
-TMP="$GIT_DIR/.git-wip.$$"
-trap 'rm -f "$TMP-*"' 0
+	TMP="$GIT_DIR/.git-wip.$$"
+	trap 'rm -f "$TMP-*"' 0
 
-WIP_INDEX="$TMP-INDEX"
+	WIP_INDEX="$TMP-INDEX"
 
-WIP_PREFIX=refs/wip/
-WIP_COMMAND=
-WIP_MESSAGE=WIP
-EDITOR_MODE=false
+	WIP_PREFIX=refs/wip/
+	WIP_COMMAND=
+	WIP_MESSAGE=WIP
+	EDITOR_MODE=false
+}
 
-dbg() {
+
+function dbg()
+{
 	if test -n "$WIP_DEBUG"
 	then
 		printf '# %s\n' "$*"
@@ -63,33 +130,39 @@ dbg() {
 }
 
 # some errors are not worth reporting in --editor mode
-report_soft_error () {
+function report_soft_error()
+{
 	$EDITOR_MODE && exit 0
 	die "$@"
 }
 
-cleanup () {
+function cleanup()
+{
 	rm -f "$TMP-*"
 }
 
-get_work_branch () {
+function get_work_branch()
+{
 	ref=$(git symbolic-ref -q HEAD) \
 	|| report_soft_error "git-wip requires a branch"
 
 
 	branch=${ref#refs/heads/}
-	if [ $branch = $ref ] ; then
+	if [ $branch = $ref ]
+	then
 		die "git-wip requires a local branch"
 	fi
 
 	echo $branch
 }
 
-get_wip_branch () {
+function get_wip_branch()
+{
 	return 0
 }
 
-check_files () {
+function check_files()
+{
 	local -a files=( "$@" )
 
 	for f in "${files[@]}"
@@ -98,7 +171,8 @@ check_files () {
 	done
 }
 
-build_new_tree () {
+function build_new_tree()
+{
 	local untracked=$1 ; shift
 	local ignored=$1 ; shift
 	local -a files=( "$@" )
@@ -122,11 +196,14 @@ build_new_tree () {
 	)
 }
 
-do_save () {
+function do_save()
+{
+	# echo args=$@
 	local msg="$1" ; shift
 	local add_untracked=
 	local add_ignored=
 	local no_sign=
+	local push=0
 
 	while test $# != 0
 	do
@@ -143,6 +220,10 @@ do_save () {
 		--no-gpg-sign)
 			no_sign=--no-gpg-sign
 			;;
+		-p|--push)
+			push=$2
+			shift
+			;;
 		--)
 			shift
 			break
@@ -157,6 +238,7 @@ do_save () {
 	local -a files=( "$@" )
 	local "add_untracked=$add_untracked"
 	local "add_ignored=$add_ignored"
+	local "push=$push"
 
 	if test "${#files[@]}" -gt 0
 	then
@@ -169,7 +251,6 @@ do_save () {
 
 	local work_branch=$(get_work_branch)
 	local wip_branch="$WIP_PREFIX$work_branch"
-
 	dbg "work_branch=$work_branch"
 	dbg "wip_branch=$wip_branch"
 
@@ -191,7 +272,8 @@ do_save () {
 		local base=$(git merge-base $wip_last $work_last) \
 		|| die "'work_branch' and '$wip_branch' are unrelated."
 
-		if [ $base = $work_last ] ; then
+		if [ $base = $work_last ]
+		then
 			wip_parent=$wip_last
 		else
 			wip_parent=$work_last
@@ -215,7 +297,8 @@ do_save () {
 
 	dbg "new_tree=$new_tree"
 
-	if git diff-tree --exit-code --quiet $new_tree $wip_parent ; then
+	if git diff-tree --exit-code --quiet $new_tree $wip_parent
+	then
 		report_soft_error "no changes"
 	fi
 
@@ -230,15 +313,57 @@ do_save () {
 	git update-ref -m "git-wip: $msg1" $wip_branch $new_wip $wip_last
 
 	dbg "SUCCESS"
+
+	local work_branch_remote=$(git config branch.${work_branch}.remote)
+	local wip_remote_branch=$(echo "$WIP_PREFIX$work_branch" | cut -d/ -f2-)
+	# echo wip_remote_branch=$wip_remote_branch
+	# echo new_wip=$new_wip
+	# echo work_branch_remote=${work_branch_remote}
+	# echo work_branch_remote=${work_branch_remote:-origin}
+	if git ls-remote --exit-code --heads  ${work_branch_remote:-origin} ${wip_remote_branch} >/dev/null 2>&1
+	then
+		local rbase=$(git rev-parse refs/remotes/${work_branch_remote:-origin}/${wip_remote_branch}) ||
+			die "remote branch for $wip_branch' not present."
+		# echo rbase=$rbase
+		local wip_commits=$(git rev-list --count ${rbase}..${new_wip})
+	else
+		local base=$(git merge-base $new_wip $work_last) ||
+			die "'work_branch' and '$wip_branch' are unrelated."
+		# echo base=$base
+		local wip_commits=$(git rev-list --count ${base}..${new_wip})
+	fi
+
+	if [ -z "$push" ]
+	then
+		if [ -n "$GIT_WIP_PUSH_COUNT" ]
+		then
+			push=$GIT_WIP_PUSH_COUNT
+		fi
+	fi
+
+	if [ $push -gt 0 -a $wip_commits -ge $push ]
+	then
+		do_push "$work_branch"
+	else
+		# echo push=$push
+		# echo wip_commits=$wip_commits
+		if [ $push -gt 0 ]
+		then
+			echo Not pushing
+		fi
+	fi
+
 }
 
-do_info () {
+function do_info()
+{
 	local branch=$1
 
 	die "info not implemented"
 }
 
-do_log () {
+function do_log()
+{
 	local work_branch=$1
 	[ -z $branch ] && work_branch=$(get_work_branch)
 	local wip_branch="$WIP_PREFIX$work_branch"
@@ -250,7 +375,7 @@ do_log () {
 	while [ -n "$1" ]
 	do
 		case "$1" in
-			-p|--pretty)
+			-P|--pretty)
 				graph="--graph"
 				pretty="--pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr)%Creset' --abbrev-commit --date=relative"
 				;;
@@ -292,7 +417,8 @@ do_log () {
 	dbg base=$base
 
 	local stop=$base
-	if git cat-file commit $base | grep -q '^parent' ; then
+	if git cat-file commit $base | grep -q '^parent'
+	then
 		stop="$base~1"
 	fi
 
@@ -301,13 +427,96 @@ do_log () {
 	echo git log $graph $stat $pretty "$@" $wip_last $work_last "^$stop" | sh
 }
 
-do_delete () {
+function do_delete()
+{
 	local branch=$1
 
 	die "delete not implemented"
 }
 
-do_help () {
+function do_push()
+{
+	local work_branch=$1
+	# echo work_branch=$work_branch
+	shift
+	[ -z $branch ] && work_branch=$(get_work_branch)
+	local wip_branch="$WIP_PREFIX$work_branch"
+	local wip_remote_branch=$(echo "$WIP_PREFIX$work_branch" | cut -d/ -f2-)
+	# echo work_branch=$work_branch
+	# local force=""
+	# while [ -n "$1" ]
+	# do
+	# 	case "$1" in
+	# 		-f|--force)
+	# 			force="t"
+	# 			;;
+	# 		*)
+	# 			break
+	# 			;;
+	# 	esac
+	# 	shift
+	# done
+
+	if ! work_last=$(git rev-parse --verify $work_branch)
+	then
+		report_soft_error "'$work_branch' branch has no commits."
+	fi
+	# if wip_last=$(git rev-parse --quiet --verify $wip_branch)
+	# then
+	# 	local base=$(git merge-base $wip_last $work_last) \
+	# 		|| die "'work_branch' and '$wip_branch' are unrelated."
+
+	# 	if [ $base = $work_last ]
+  #   then
+	# 		wip_parent=$wip_last
+	# 	else
+	# 		wip_parent=$work_last
+	# 	fi
+	# else
+	# 	# remove empty/corrupt wip branch file
+	# 	local wip_branch_file="$GIT_DIR/$wip_branch"
+	# 	if test -e "$wip_branch_file"
+	# 	then
+	# 		dbg "removing $wip_branch_file"
+	# 		rm -f "$wip_branch_file"
+	# 	fi
+	# 	# use the working branch for parent
+	# 	wip_parent=$work_last
+	# fi
+
+	# dbg "wip_parent=$wip_parent"
+
+	if ! work_last=$(git rev-parse --verify $work_branch)
+	then
+		die "'$work_branch' branch has no commits."
+	fi
+
+	dbg work_last=$work_last
+
+	if ! wip_last=$(git rev-parse --quiet --verify $wip_branch)
+	then
+		die "'$work_branch' branch has no commits."
+	fi
+
+	dbg wip_last=$wip_last
+
+	local base=$(git merge-base $wip_last $work_last)
+
+	dbg base=$base
+
+	local stop=$base
+
+	local work_branch_remote=$(git config branch.${work_branch}.remote)
+	if git ls-remote --exit-code --heads  ${work_branch_remote:-origin} ${wip_remote_branch} >/dev/null 2>&1
+	then
+		git push $* ${work_branch_remote:-origin} ${wip_branch}:refs/heads/${wip_remote_branch}
+	else
+		git push -u $* ${work_branch_remote:-origin} ${wip_branch}:refs/heads/${wip_remote_branch}
+	fi
+}
+
+function do_help()
+{
 	local rc=$1
 
 	cat <<END
@@ -318,58 +527,7 @@ END
 	exit $rc
 }
 
-
-if test $# -eq 0
-then
-	dbg "no arguments"
-
-	do_save "WIP"
-	exit $?
-fi
-
-dbg "args: $@"
-
-case "$1" in
-save)
-	WIP_COMMAND=$1
-	shift
-	if [ -n "$1" ] && [[ "$1" != -* ]]
-	then
-		WIP_MESSAGE="$1"
-		shift
-	fi
-	;;
-info|log|delete)
-	WIP_COMMAND=$1
-	shift
-	;;
-help)
-	do_help 0
-	;;
---*)
-	;;
-*)
-	[ -f "$1" ] || die "Unknown command '$1'."
-	;;
-esac
-
-case $WIP_COMMAND in
-save)
-	do_save "$WIP_MESSAGE" "$@"
-	;;
-info)
-	do_info "$@"
-	;;
-log)
-	do_log "$@"
-	;;
-delete)
-	do_delete "$@"
-	;;
-*)
-	usage
-	exit 1
-	;;
-esac
+main "$@"
+exit
 
 # vim: set noet sw=8
