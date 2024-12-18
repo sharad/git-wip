@@ -28,6 +28,9 @@
 
 (require 'vc)
 
+(defvar git-wip-push-commits-count 0
+  "Push to emote if no of commits exceeds git-wip-push-commits-count.")
+
 (defvar git-wip-buffer-name " *git-wip*"
   "Name of the buffer to which git-wip's output will be echoed")
 
@@ -35,11 +38,13 @@
   (or
    ;; Internal copy of git-wip; preferred because it will be
    ;; version-matched
-   (expand-file-name
-    "../git-wip"
-    (file-name-directory
-     (or load-file-name
-         (locate-library "git-wip-mode"))))
+   (let ((git-wip-path (expand-file-name
+                       "../git-wip"
+                       (file-name-directory
+                        (or load-file-name
+                            (locate-library "git-wip-mode"))))))
+     (when (file-exists-p git-wip-path)
+       git-wip-path))
    ;; Look in $PATH and git exec-path
    (let ((exec-path
           (append
@@ -53,12 +58,21 @@
 (defun git-wip-after-save ()
   (when (and (string= (vc-backend (buffer-file-name)) "Git")
              git-wip-path)
-    (start-process "git-wip" git-wip-buffer-name
-                   git-wip-path "save" (concat "WIP from emacs: "
-                                               (file-name-nondirectory
-                                                buffer-file-name))
-                   "--editor" "--"
-                   (file-name-nondirectory buffer-file-name))
+    (if (> 0 git-wip-push-commits-count)
+        (start-process "git-wip" git-wip-buffer-name
+                       git-wip-path "save" (concat "WIP from emacs: "
+                                                   (file-name-nondirectory
+                                                    buffer-file-name))
+                       "--editor"
+                       "--push" (number-to-string git-wip-push-commits-count)
+                       "--"
+                       (file-name-nondirectory buffer-file-name))
+      (start-process "git-wip" git-wip-buffer-name
+                     git-wip-path "save" (concat "WIP from emacs: "
+                                                 (file-name-nondirectory
+                                                  buffer-file-name))
+                     "--editor" "--"
+                     (file-name-nondirectory buffer-file-name)))
     (message (concat "Wrote and git-wip'd " (buffer-file-name)))))
 
 ;;;###autoload
