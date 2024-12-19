@@ -507,7 +507,7 @@ END
 	exit $rc
 }
 
-main $*
+main "$@"
 exit
 
 # vim: set noet sw=8
