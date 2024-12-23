@@ -330,6 +330,7 @@ function do_save()
 		local wip_commits=$(git rev-list --count ${new_wip}..${base})
 	fi
 
+
 	if [ -z "$push" ]
 	then
 		if [ -n "$GIT_WIP_PUSH_COUNT" ]
