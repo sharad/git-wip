@@ -221,8 +221,6 @@ function do_save()
 			no_sign=--no-gpg-sign
 			;;
 		-p|--push)
-			echo $1
-			echo $2
 			push=$2
 			shift
 			;;
