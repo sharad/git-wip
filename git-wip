@@ -337,6 +337,7 @@ function do_save()
 	then
 		do_push "$work_branch"
 	else
+		echo push=$push
 		echo No pushing
 	fi
 
