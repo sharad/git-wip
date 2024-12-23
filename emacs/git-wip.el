@@ -29,9 +29,10 @@
                                                        (if (and start-marker end-marker)
                                                            (buffer-substring start-marker end-marker)
                                                          (when end-marker (buffer-string))))))
-                                          (message "Process %s-push failed with exit code %d"
+                                          (message "Process %s-push failed with exit code %d\n%s"
                                                    (process-name process)
-                                                   exit-code)
+                                                   exit-code
+                                                   text)
                                           (error "Process %s-push failed with exit code %d"
                                                  (process-name process)
                                                  exit-code))))))))))
