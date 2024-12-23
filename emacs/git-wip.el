@@ -4,26 +4,32 @@
 (defun git-wip-push (arg)
   (interactive "P")
   (when (string= (vc-backend (buffer-file-name)) "Git")
-    (make-process :name "git-wip"
-                  :buffer git-wip-buffer-name
-                  :command (if arg
-                               (list git-wip-path "push" "-f" "--")
-                             (list git-wip-path "push" "--"))
-                  :sentinel #'(lambda (process event)
-                                "Sentinel to handle process exit status."
-                                (when (string-match-p "finished\\|exited" event)
-                                  (let ((exit-code (process-exit-status process)))
-                                    (message "event %s" event)
-                                    (message "exit-code %d" exit-code)
-                                    (if (zerop exit-code)
-                                        (message (concat "Wrote and git-wip-push'd "
-                                                         (buffer-file-name)))
-                                      (message "Process %s-push failed with exit code %d"
+    (let ((marker (if (get-buffer git-wip-buffer-name)
+                      (with-current-buffer (get-buffer git-wip-buffer-name)
+                        (buffer-end)))))
+      (make-process :name "git-wip"
+                    :buffer git-wip-buffer-name
+                    :command (if arg
+                                 (list git-wip-path "push" "-f" "--")
+                               (list git-wip-path "push" "--"))
+                    :sentinel #'(lambda (process event)
+                                  "Sentinel to handle process exit status."
+                                  (when (string-match-p "finished\\|exited" event)
+                                    (let ((exit-code (process-exit-status process)))
+                                      (message "event %s" event)
+                                      (message "exit-code %d" exit-code)
+                                      (if (zerop exit-code)
+                                          (message (concat "Wrote and git-wip-push'd "
+                                                           (buffer-file-name)))
+                                        (message "Process %s-push failed with exit code %d"
+                                                 (process-name process)
+                                                 exit-code)
+                                        (error "Process %s-push failed with exit code %d"
                                                (process-name process)
-                                               exit-code)
-                                      (error "Process %s-push failed with exit code %d"
-                                             (process-name process)
-                                             exit-code))))))))
+                                               exit-code)))))))))
+
+
+
 
 (defun git-wip-wrapper ()
   (interactive)
