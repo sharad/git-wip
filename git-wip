@@ -338,7 +338,7 @@ function do_save()
 		do_push "$work_branch"
 	else
 		echo push=$push
-		echo $wip_commits
+		echo wip_commits=$wip_commits
 		echo No pushing
 	fi
 
