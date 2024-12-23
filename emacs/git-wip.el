@@ -24,7 +24,7 @@
                                         (let* ((new-marker (if (get-buffer git-wip-buffer-name)
                                                                (with-current-buffer (get-buffer git-wip-buffer-name)
                                                                  (buffer-end))))
-                                               ())
+                                               (text ))
                                           (message "Process %s-push failed with exit code %d"
                                                    (process-name process)
                                                    exit-code)
