@@ -320,7 +320,7 @@ function do_save()
 	then
 		local rbase=$(git rev-parse ${wip_remote_branch}'@{upstream}') ||
 			die "remote branch for $wip_branch' not present."
-		echo $rbase
+		echo rbase=$rbase
 		local wip_commits=$(git rev-list --count ${new_wip}..${rbase})
 	else
 		local base=$(git merge-base $new_wip $work_last) ||
