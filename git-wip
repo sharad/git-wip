@@ -94,7 +94,7 @@ Options for save:
         -i --ignored              - capture also ignored files
         --no-gpg-sign             - do not sign commit; that is, countermand
                                     'commit.gpgSign = true'
-        -u --push no_of_commits   - also push if no_of_commits exceeds
+        -p --push no_of_commits   - also push if no_of_commits exceeds
 
 Options for log:
         -P --pretty               - show a pretty graph
