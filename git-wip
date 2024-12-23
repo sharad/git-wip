@@ -223,7 +223,7 @@ function do_save()
 		-p|--push)
 			echo $1
 			echo $2
-			push=$1
+			push=$2
 			shift
 			;;
 		--)
