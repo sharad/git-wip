@@ -336,6 +336,8 @@ function do_save()
 	if [ -n "$push" ] && [ $push -ne 0 -a $wip_commits -gt ${push} ]
 	then
 		do_push "$work_branch"
+	else
+		echo No pusing
 	fi
 
 	dbg "SUCCESS"
