@@ -21,12 +21,13 @@
                                       (if (zerop exit-code)
                                           (message (concat "Wrote and git-wip-push'd "
                                                            (buffer-file-name)))
-                                        (message "Process %s-push failed with exit code %d"
+                                        (let (())
+                                          (message "Process %s-push failed with exit code %d"
+                                                   (process-name process)
+                                                   exit-code)
+                                          (error "Process %s-push failed with exit code %d"
                                                  (process-name process)
-                                                 exit-code)
-                                        (error "Process %s-push failed with exit code %d"
-                                               (process-name process)
-                                               exit-code)))))))))
+                                                 exit-code))))))))))
 
 
 
