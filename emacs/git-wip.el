@@ -4,9 +4,9 @@
 (defun git-wip-push (arg)
   (interactive "P")
   (when (string= (vc-backend (buffer-file-name)) "Git")
-    (let ((marker (if (get-buffer git-wip-buffer-name)
-                      (with-current-buffer (get-buffer git-wip-buffer-name)
-                        (buffer-end)))))
+    (let ((start-marker (if (get-buffer git-wip-buffer-name)
+                            (with-current-buffer (get-buffer git-wip-buffer-name)
+                              (buffer-end)))))
       (make-process :name "git-wip"
                     :buffer git-wip-buffer-name
                     :command (if arg
@@ -21,10 +21,14 @@
                                       (if (zerop exit-code)
                                           (message (concat "Wrote and git-wip-push'd "
                                                            (buffer-file-name)))
-                                        (let* ((new-marker (if (get-buffer git-wip-buffer-name)
-                                                               (with-current-buffer (get-buffer git-wip-buffer-name)
+                                        (let* ((git-wip-buffer (get-buffer git-wip-buffer-name))
+                                               (end-marker (if git-wip-buffer
+                                                               (with-current-buffer git-wip-buffer
                                                                  (buffer-end))))
-                                               (text ))
+                                               (text (with-current-buffer git-wip-buffer
+                                                       (if (and start-marker end-marker)
+                                                           (buffer-substring start-marker end-marker)
+                                                         (when end-marker (buffer-string))))))
                                           (message "Process %s-push failed with exit code %d"
                                                    (process-name process)
                                                    exit-code)
