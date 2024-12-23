@@ -326,6 +326,7 @@ function do_save()
 		local base=$(git merge-base $new_wip $work_last) ||
 			die "'work_branch' and '$wip_branch' are unrelated."
 		local wip_commits=$(git rev-list --count ${new_wip}..${base})
+		
 	fi
 
 	if [ -z "$push" ]
