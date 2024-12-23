@@ -38,9 +38,6 @@
                                                  exit-code
                                                  text))))))))))
 
-
-
-
 (defun git-wip-wrapper ()
   (interactive)
   (let ((file-arg (shell-quote-argument (buffer-file-name))))
