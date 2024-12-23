@@ -337,7 +337,7 @@ function do_save()
 	then
 		do_push "$work_branch"
 	else
-		echo No pusing
+		echo No pushing
 	fi
 
 	dbg "SUCCESS"
