@@ -320,7 +320,7 @@ function do_save()
 	# if git rev-parse --abbrev-ref --symbolic-full-name ${wip_remote_branch}'@{upstream}' >/dev/null 2>&1
 
 	if git ls-remote --exit-code --heads origin ${wip_remote_branch}
-	then 
+	then
 		local rbase=$(git rev-parse ${wip_remote_branch}'@{upstream}') ||
 			die "remote branch for $wip_branch' not present."
 		echo rbase=$rbase
