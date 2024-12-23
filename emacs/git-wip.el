@@ -4,9 +4,9 @@
 (defun git-wip-push (arg)
   (interactive "P")
   (when (string= (vc-backend (buffer-file-name)) "Git")
-    (let ((start-marker (if (get-buffer git-wip-buffer-name)
-                            (with-current-buffer (get-buffer git-wip-buffer-name)
-                              (buffer-end)))))
+    (let ((start-marker (when (get-buffer git-wip-buffer-name)
+                          (with-current-buffer (get-buffer git-wip-buffer-name)
+                            (buffer-end 1)))))
       (make-process :name "git-wip"
                     :buffer git-wip-buffer-name
                     :command (if arg
@@ -24,7 +24,7 @@
                                         (let* ((git-wip-buffer (get-buffer git-wip-buffer-name))
                                                (end-marker (if git-wip-buffer
                                                                (with-current-buffer git-wip-buffer
-                                                                 (buffer-end))))
+                                                                 (buffer-end 1))))
                                                (text (with-current-buffer git-wip-buffer
                                                        (if (and start-marker end-marker)
                                                            (buffer-substring start-marker end-marker)
