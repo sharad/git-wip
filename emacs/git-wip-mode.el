@@ -58,7 +58,7 @@
 (defun git-wip-after-save ()
   (when (and (string= (vc-backend (buffer-file-name)) "Git")
              git-wip-path)
-    (if (> 0 git-wip-push-commits-count)
+    (if (> git-wip-push-commits-count 0)
         (start-process "git-wip" git-wip-buffer-name
                        git-wip-path "save" (concat "WIP from emacs: "
                                                    (file-name-nondirectory
