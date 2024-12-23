@@ -204,7 +204,7 @@ function do_save()
 	local no_sign=
 	local push=0
 
-	echo $@
+	echo args=$@
 
 	while test $# != 0
 	do
