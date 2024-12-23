@@ -21,7 +21,9 @@
                                       (if (zerop exit-code)
                                           (message (concat "Wrote and git-wip-push'd "
                                                            (buffer-file-name)))
-                                        (let (())
+                                        (let ((new-marker (if (get-buffer git-wip-buffer-name)
+                                                              (with-current-buffer (get-buffer git-wip-buffer-name)
+                                                                (buffer-end)))))
                                           (message "Process %s-push failed with exit code %d"
                                                    (process-name process)
                                                    exit-code)
