@@ -198,13 +198,13 @@ function build_new_tree()
 
 function do_save()
 {
+	echo args=$@
 	local msg="$1" ; shift
 	local add_untracked=
 	local add_ignored=
 	local no_sign=
 	local push=0
 
-	echo args=$@
 
 	while test $# != 0
 	do
