@@ -33,9 +33,10 @@
                                                    (process-name process)
                                                    exit-code
                                                    text)
-                                          (error "Process %s-push failed with exit code %d"
+                                          (error "Process %s-push failed with exit code %d\n%s"
                                                  (process-name process)
-                                                 exit-code))))))))))
+                                                 exit-code
+                                                 text))))))))))
 
 
 
