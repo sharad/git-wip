@@ -220,7 +220,7 @@ function do_save()
 		--no-gpg-sign)
 			no_sign=--no-gpg-sign
 			;;
-		-u|--push)
+		-p|--push)
 			echo $1
 			echo $2
 			push=$1
