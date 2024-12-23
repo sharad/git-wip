@@ -316,6 +316,7 @@ function do_save()
 
 
 	local wip_remote_branch=$(echo "$WIP_PREFIX$work_branch" | cut -d/ -f2-)
+	echo wip_remote_branch=$wip_remote_branch
 	if git rev-parse --abbrev-ref --symbolic-full-name ${wip_remote_branch}'@{upstream}' >/dev/null 2>&1
 	then
 		local rbase=$(git rev-parse ${wip_remote_branch}'@{upstream}') ||
