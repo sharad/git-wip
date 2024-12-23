@@ -56,32 +56,35 @@
   (when (and (string= (vc-backend (buffer-file-name))
                       "Git")
              git-wip-path)
-    (make-process
-     :name "git-wip"
-     :buffer git-wip-buffer-name
-     :command (list git-wip-path
-                    "save"
-                    (concat "WIP from emacs: "
-                            (file-name-nondirectory buffer-file-name))
-                    "--editor"
-                    "--push" (number-to-string git-wip-push-commits-count)
-                    "--"
-                    (file-name-nondirectory buffer-file-name))
-     :sentinel #'(lambda (process event)
-                   "Sentinel to handle process exit status."
-                   (when (string-match-p "finished\\|exited" event)
-                     (let ((exit-code (process-exit-status process)))
-                       (message "event %s" event)
-                       (message "exit-code %d" exit-code)
-                       (if (zerop exit-code)
-                           (message (concat "Wrote and git-wip'd "
-                                            (buffer-file-name)))
-                         (message "Process %s failed with exit code %d"
+    (let ((start-marker (if (get-buffer git-wip-buffer-name)
+                            (with-current-buffer (get-buffer git-wip-buffer-name)
+                              (buffer-end)))))
+      (make-process
+       :name "git-wip"
+       :buffer git-wip-buffer-name
+       :command (list git-wip-path
+                      "save"
+                      (concat "WIP from emacs: "
+                              (file-name-nondirectory buffer-file-name))
+                      "--editor"
+                      "--push" (number-to-string git-wip-push-commits-count)
+                      "--"
+                      (file-name-nondirectory buffer-file-name))
+       :sentinel #'(lambda (process event)
+                     "Sentinel to handle process exit status."
+                     (when (string-match-p "finished\\|exited" event)
+                       (let ((exit-code (process-exit-status process)))
+                         (message "event %s" event)
+                         (message "exit-code %d" exit-code)
+                         (if (zerop exit-code)
+                             (message (concat "Wrote and git-wip'd "
+                                              (buffer-file-name)))
+                           (message "Process %s failed with exit code %d"
+                                    (process-name process)
+                                    exit-code)
+                           (error "Process %s failed with exit code %d"
                                   (process-name process)
-                                  exit-code)
-                         (error "Process %s failed with exit code %d"
-                                (process-name process)
-                                exit-code))))))))
+                                  exit-code)))))))))
 
   ;;;###autoload
   (define-minor-mode git-wip-mode
