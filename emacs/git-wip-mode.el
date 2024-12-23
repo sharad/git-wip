@@ -79,12 +79,22 @@
                          (if (zerop exit-code)
                              (message (concat "Wrote and git-wip'd "
                                               (buffer-file-name)))
-                           (message "Process %s failed with exit code %d"
+                           (let* ((git-wip-buffer (get-buffer git-wip-buffer-name))
+                                  (end-marker (if git-wip-buffer
+                                                  (with-current-buffer git-wip-buffer
+                                                    (buffer-end))))
+                                  (text (with-current-buffer git-wip-buffer
+                                          (if (and start-marker end-marker)
+                                              (buffer-substring start-marker end-marker)
+                                            (when end-marker (buffer-string))))))
+                             (message "Process %s-push failed with exit code %d\n%s"
+                                      (process-name process)
+                                      exit-code
+                                      text)
+                             (error "Process %s-push failed with exit code %d\n%s"
                                     (process-name process)
-                                    exit-code)
-                           (error "Process %s failed with exit code %d"
-                                  (process-name process)
-                                  exit-code)))))))))
+                                    exit-code
+                                    text))))))))))
 
   ;;;###autoload
   (define-minor-mode git-wip-mode
